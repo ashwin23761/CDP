@@ -1,4 +1,4 @@
-const { createPost, getAllPosts, getPostById } = require("../models/posts.model");
+const { createPost, getAllPosts, getPostById } = require("../models/postsModel");
 
 /**
  * POST /posts

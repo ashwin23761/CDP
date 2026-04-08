@@ -7,10 +7,12 @@ const db = require("./config/db");
 const app = express();
 
 const userRoutes = require("./routes/userRoutes");
+const postsRoutes = require("./routes/postsRoutes");
 
 app.use(cors());
 app.use(express.json());
 app.use("/users", userRoutes);
+app.use("/posts", postsRoutes);
 
 app.get("/", (req, res) => {
   res.send("API running");

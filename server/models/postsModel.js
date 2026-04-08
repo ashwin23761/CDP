@@ -1,4 +1,4 @@
-const pool = require("../db");
+const pool = require("../config/db");
 
 /**
  * Insert a new post into the Posts table.

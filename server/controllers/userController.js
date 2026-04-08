@@ -30,33 +30,27 @@ exports.createUser = async (req, res) => {
             VALUES (?, ?, ?, ?)
         `;
 
-        db.query(query, [username, email, hashedPassword, anonymous_name], (err, result) => {
-            if (err) {
-                console.error(err);
+        const [result] = await db.query(query, [username, email, hashedPassword, anonymous_name]);
 
-                // duplicate email/username
-                if (err.code === "ER_DUP_ENTRY") {
-                    return res.status(400).json({
-                        message: "User already exists"
-                    });
-                }
-
-                return res.status(500).json({
-                    message: "Database error"
-                });
-            }
-
-            // 5. Response
-            res.status(201).json({
-                message: "User created successfully",
-                user_id: result.insertId,
-                anonymous_name
-            });
+        // 5. Response
+        res.status(201).json({
+            message: "User created successfully",
+            user_id: result.insertId,
+            anonymous_name
         });
 
-    } catch (error) {
-        res.status(500).json({
-            message: "Server error"
+    } catch (err) {
+        console.error(err);
+
+        // duplicate email/username
+        if (err.code === "ER_DUP_ENTRY") {
+            return res.status(400).json({
+                message: "User already exists"
+            });
+        }
+
+        return res.status(500).json({
+            message: "Database error"
         });
     }
 };

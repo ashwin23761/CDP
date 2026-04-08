@@ -5,7 +5,7 @@ const {
   handleCreatePost,
   handleGetAllPosts,
   handleGetPostById,
-} = require("./posts.controller");
+} = require("../controllers/postsController");
 
 // POST /posts        → create a new post
 router.post("/", handleCreatePost);
