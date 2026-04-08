@@ -1,16 +1,7 @@
-import { useState } from "react";
-import "./App.css";
+import HomePage from "./pages/HomePage";
 
-function App() {
-  const [count, setCount] = useState(0);
-
-  return (
-    <>
-      <div className="bg-red-500 text-white p-20">
-        Welcome to Community Discussion Platform
-      </div>
-    </>
-  );
+// Member D will add a router here (e.g. react-router-dom) once all
+// pages are built. For now, a single page is enough for Week 2.
+export default function App() {
+  return <HomePage />;
 }
-
-export default App;
