@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS posts (
     -- FOREIGN KEY (user_id)
     --     REFERENCES Users(user_id)
     --     ON DELETE SET NULL-- post survives even if user is deleted   
+
 );
 CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -21,3 +22,5 @@ CREATE TABLE users (
     anonymous_name VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );  
+
+
