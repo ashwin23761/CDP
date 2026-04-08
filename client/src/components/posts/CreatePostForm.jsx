@@ -1,0 +1,177 @@
+import { useState } from "react";
+import { createPost } from "../../api/posts";
+
+// Hardcoded for Week 2 — Member A will wire in real auth/session in their work.
+// Member D will standardize this when connecting frontend ↔ backend.
+const TEMP_USER_ID = 1;
+
+export default function CreatePostForm({ onPostCreated }) {
+  const [title,   setTitle]   = useState("");
+  const [content, setContent] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState(null);
+  const [open,    setOpen]    = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!title.trim() || !content.trim()) {
+      setError("Both title and content are required.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await createPost({
+        user_id: TEMP_USER_ID,
+        title: title.trim(),
+        content: content.trim(),
+      });
+
+      if (res.success) {
+        setTitle("");
+        setContent("");
+        setOpen(false);
+        onPostCreated(res.data); // bubble up to parent
+      }
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        "Something went wrong. Is the server running?";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mb-10">
+      {/* Toggle button */}
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          className="group flex items-center gap-3 w-full px-6 py-4 rounded-xl
+                     border border-[#1C1C2E] bg-[#101018]
+                     hover:border-[#C8FF00] hover:bg-[#13131f]
+                     transition-all duration-300 text-left"
+        >
+          <span
+            className="w-8 h-8 rounded-full border border-[#1C1C2E]
+                          group-hover:border-[#C8FF00] group-hover:bg-[#C8FF00]
+                          flex items-center justify-center
+                          text-[#52526E] group-hover:text-[#090910]
+                          transition-all duration-300 font-bold text-lg leading-none"
+          >
+            +
+          </span>
+          <span className="text-[#52526E] group-hover:text-[#F0F0FF] transition-colors duration-300 font-body">
+            Start a new discussion…
+          </span>
+        </button>
+      )}
+
+      {/* Form panel */}
+      {open && (
+        <div
+          className="rounded-xl border border-[#C8FF00] bg-[#101018] p-6
+                        shadow-[0_0_40px_rgba(200,255,0,0.08)]"
+          style={{ animation: "fadeUp 0.3s ease forwards" }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-display text-3xl tracking-wider text-[#C8FF00]">
+              NEW POST
+            </h2>
+            <button
+              onClick={() => { setOpen(false); setError(null); }}
+              className="w-8 h-8 rounded-full border border-[#1C1C2E]
+                         hover:border-[#C8FF00] hover:text-[#C8FF00]
+                         flex items-center justify-center
+                         text-[#52526E] transition-all duration-200 text-sm"
+            >
+              ✕
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {/* Title */}
+            <div>
+              <label className="block text-xs font-semibold tracking-widest
+                                text-[#52526E] uppercase mb-2">
+                Title
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="What's on your mind?"
+                maxLength={255}
+                className="w-full px-4 py-3 rounded-lg
+                           bg-[#0D0D15] border border-[#1C1C2E]
+                           text-[#F0F0FF] placeholder-[#2E2E42]
+                           focus:outline-none focus:border-[#C8FF00]
+                           transition-colors duration-200 font-body text-base"
+              />
+              <p className="text-right text-xs text-[#2E2E42] mt-1">
+                {title.length}/255
+              </p>
+            </div>
+
+            {/* Content */}
+            <div>
+              <label className="block text-xs font-semibold tracking-widest
+                                text-[#52526E] uppercase mb-2">
+                Content
+              </label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Share your thoughts, questions, or opinions…"
+                rows={5}
+                className="w-full px-4 py-3 rounded-lg
+                           bg-[#0D0D15] border border-[#1C1C2E]
+                           text-[#F0F0FF] placeholder-[#2E2E42]
+                           focus:outline-none focus:border-[#C8FF00]
+                           transition-colors duration-200 font-body text-base"
+              />
+            </div>
+
+            {/* Error */}
+            {error && (
+              <p className="text-sm text-red-400 bg-red-900/20
+                            border border-red-800 rounded-lg px-4 py-2">
+                {error}
+              </p>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => { setOpen(false); setError(null); }}
+                className="px-5 py-2.5 rounded-lg border border-[#1C1C2E]
+                           text-[#52526E] hover:text-[#F0F0FF]
+                           hover:border-[#2E2E42] transition-all duration-200
+                           font-body text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-2.5 rounded-lg bg-[#C8FF00] text-[#090910]
+                           font-bold font-body text-sm tracking-wide
+                           hover:bg-[#d8ff33] active:scale-95
+                           disabled:opacity-50 disabled:cursor-not-allowed
+                           transition-all duration-200"
+              >
+                {loading ? "Posting…" : "Post It"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
