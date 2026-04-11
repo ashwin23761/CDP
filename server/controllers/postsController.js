@@ -1,112 +1,119 @@
-const { createPost, getAllPosts, getPostById } = require("../models/postsModel");
+const { createPost, getAllPosts, getPostById, updatePost, deletePost, searchPosts } = require("../models/postsModel");
 
-/**
- * POST /posts
- * Body: { group_id, title, content }
- */
 const handleCreatePost = async (req, res) => {
-  const { group_id, title, content } = req.body;
-  const user_id = req.user.user_id; // From JWT token
+  const { group_id, title, content, tags } = req.body;
+  const user_id = req.user.user_id;
 
-  // --- Basic validation ---
   if (!group_id || !title || !content) {
-    return res.status(400).json({
-      success: false,
-      message: "group_id, title, and content are all required.",
-    });
+    return res.status(400).json({ success: false, message: "group_id, title, and content are all required." });
   }
-
   if (title.trim().length === 0 || content.trim().length === 0) {
-    return res.status(400).json({
-      success: false,
-      message: "title and content cannot be empty.",
-    });
+    return res.status(400).json({ success: false, message: "title and content cannot be empty." });
   }
 
   try {
-    const newPost = await createPost(user_id, group_id, title.trim(), content.trim());
-
-    return res.status(201).json({
-      success: true,
-      message: "Post created successfully.",
-      data: newPost,
-    });
+    const newPost = await createPost(user_id, group_id, title.trim(), content.trim(), tags || []);
+    return res.status(201).json({ success: true, message: "Post created successfully.", data: newPost });
   } catch (err) {
-    // Foreign-key violation → user_id or group_id does not exist
     if (err.code === "ER_NO_REFERENCED_ROW_2") {
-      return res.status(404).json({
-        success: false,
-        message: `User or group does not exist.`,
-      });
+      return res.status(404).json({ success: false, message: "User or group does not exist." });
     }
-
     console.error("[handleCreatePost]", err);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error while creating post.",
-    });
+    return res.status(500).json({ success: false, message: "Internal server error while creating post." });
   }
 };
 
-/**
- * GET /posts
- * Query params: ?group_id=X (optional)
- * Returns all posts, newest first, optionally filtered by group
- */
 const handleGetAllPosts = async (req, res) => {
   try {
     const { group_id } = req.query;
     const posts = await getAllPosts(group_id);
-
-    return res.status(200).json({
-      success: true,
-      count: posts.length,
-      data: posts,
-    });
+    return res.status(200).json({ success: true, count: posts.length, data: posts });
   } catch (err) {
     console.error("[handleGetAllPosts]", err);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error while fetching posts.",
-    });
+    return res.status(500).json({ success: false, message: "Internal server error while fetching posts." });
   }
 };
 
-/**
- * GET /posts/:postId
- * Returns a single post by ID.
- */
 const handleGetPostById = async (req, res) => {
   const post_id = parseInt(req.params.postId, 10);
+  if (isNaN(post_id)) {
+    return res.status(400).json({ success: false, message: "postId must be a valid integer." });
+  }
+  try {
+    const post = await getPostById(post_id);
+    if (!post) {
+      return res.status(404).json({ success: false, message: `Post with id ${post_id} not found.` });
+    }
+    return res.status(200).json({ success: true, data: post });
+  } catch (err) {
+    console.error("[handleGetPostById]", err);
+    return res.status(500).json({ success: false, message: "Internal server error while fetching post." });
+  }
+};
+
+const handleUpdatePost = async (req, res) => {
+  const post_id = parseInt(req.params.postId, 10);
+  const user_id = req.user.user_id;
+  const { title, content, tags } = req.body;
 
   if (isNaN(post_id)) {
-    return res.status(400).json({
-      success: false,
-      message: "postId must be a valid integer.",
-    });
+    return res.status(400).json({ success: false, message: "postId must be a valid integer." });
+  }
+  if (!title || !content) {
+    return res.status(400).json({ success: false, message: "title and content are required." });
   }
 
   try {
-    const post = await getPostById(post_id);
-
-    if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: `Post with id ${post_id} not found.`,
-      });
+    const updated = await updatePost(post_id, user_id, title.trim(), content.trim(), tags || []);
+    if (!updated) {
+      return res.status(403).json({ success: false, message: "Post not found or you are not the author." });
     }
-
-    return res.status(200).json({
-      success: true,
-      data: post,
-    });
+    return res.json({ success: true, message: "Post updated.", data: updated });
   } catch (err) {
-    console.error("[handleGetPostById]", err);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error while fetching post.",
-    });
+    console.error("[handleUpdatePost]", err);
+    return res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
 
-module.exports = { handleCreatePost, handleGetAllPosts, handleGetPostById };
+const handleDeletePost = async (req, res) => {
+  const post_id = parseInt(req.params.postId, 10);
+  const user_id = req.user.user_id;
+
+  if (isNaN(post_id)) {
+    return res.status(400).json({ success: false, message: "postId must be a valid integer." });
+  }
+
+  try {
+    const deleted = await deletePost(post_id, user_id);
+    if (!deleted) {
+      return res.status(403).json({ success: false, message: "Post not found or you are not the author." });
+    }
+    return res.json({ success: true, message: "Post deleted." });
+  } catch (err) {
+    console.error("[handleDeletePost]", err);
+    return res.status(500).json({ success: false, message: "Internal server error." });
+  }
+};
+
+const handleSearchPosts = async (req, res) => {
+  try {
+    const { q, tag } = req.query;
+    if (!q && !tag) {
+      return res.status(400).json({ success: false, message: "Provide q (search query) or tag parameter." });
+    }
+    const posts = await searchPosts(q, tag);
+    return res.json({ success: true, count: posts.length, data: posts });
+  } catch (err) {
+    console.error("[handleSearchPosts]", err);
+    return res.status(500).json({ success: false, message: "Internal server error." });
+  }
+};
+
+module.exports = {
+  handleCreatePost,
+  handleGetAllPosts,
+  handleGetPostById,
+  handleUpdatePost,
+  handleDeletePost,
+  handleSearchPosts,
+};

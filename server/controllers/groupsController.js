@@ -83,10 +83,22 @@ const getAllGroups = async (req, res) => {
   }
 };
 
-// Get group by ID
+// Get group by ID — private groups only show full details to members
 const getGroupById = async (req, res) => {
   try {
     const { id } = req.params;
+    const authHeader = req.headers['authorization'];
+    let current_user_id = null;
+
+    // Try to extract user from token (optional auth)
+    if (authHeader) {
+      const jwt = require('jsonwebtoken');
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        current_user_id = decoded.user_id;
+      } catch (e) { /* ignore */ }
+    }
 
     const [groups] = await db.query(`
       SELECT 
@@ -103,22 +115,32 @@ const getGroupById = async (req, res) => {
     `, [id]);
 
     if (groups.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Group not found'
-      });
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+
+    const group = groups[0];
+
+    // Check membership for private groups
+    let is_member = false;
+    let user_role = null;
+    if (current_user_id) {
+      const [membership] = await db.query(
+        'SELECT role FROM group_members WHERE group_id = ? AND user_id = ?',
+        [id, current_user_id]
+      );
+      if (membership.length > 0) {
+        is_member = true;
+        user_role = membership[0].role;
+      }
     }
 
     res.json({
       success: true,
-      data: groups[0]
+      data: { ...group, is_member, user_role }
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({
-      success: false,
-      message: 'Database error'
-    });
+    return res.status(500).json({ success: false, message: 'Database error' });
   }
 };
 
@@ -132,10 +154,7 @@ const joinGroup = async (req, res) => {
     const [groups] = await db.query('SELECT * FROM groups_table WHERE group_id = ?', [id]);
 
     if (groups.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Group not found'
-      });
+      return res.status(404).json({ success: false, message: 'Group not found' });
     }
 
     // Check if already a member
@@ -145,28 +164,19 @@ const joinGroup = async (req, res) => {
     );
 
     if (members.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Already a member of this group'
-      });
+      return res.status(400).json({ success: false, message: 'Already a member of this group' });
     }
 
-    // Add member
+    // Private groups: for now allow join but could add invite-only later
     await db.query(
       'INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, ?)',
       [id, user_id, 'member']
     );
 
-    res.json({
-      success: true,
-      message: 'Successfully joined the group'
-    });
+    res.json({ success: true, message: 'Successfully joined the group' });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({
-      success: false,
-      message: 'Database error'
-    });
+    return res.status(500).json({ success: false, message: 'Database error' });
   }
 };
 

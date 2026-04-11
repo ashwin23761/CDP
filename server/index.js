@@ -13,6 +13,7 @@ const groupsRoutes = require("./routes/groupsRoutes");
 const postsRoutes = require("./routes/postsRoutes");
 const commentsRoutes = require("./routes/commentsRoutes");
 const votesRoutes = require("./routes/votesRoutes");
+const profileRoutes = require("./routes/profileRoutes");
 
 app.use(cors());
 app.use(express.json());
@@ -24,6 +25,7 @@ app.use("/api/groups", groupsRoutes);
 app.use("/api/posts", postsRoutes);
 app.use("/api/comments", commentsRoutes);
 app.use("/api/votes", votesRoutes);
+app.use("/api/profile", profileRoutes);
 
 app.get("/", (req, res) => {
   res.send("CDP API Running");

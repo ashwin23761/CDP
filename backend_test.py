@@ -49,6 +49,8 @@ class CDPAPITester:
                 response = requests.get(url, headers=test_headers, timeout=10)
             elif method == 'POST':
                 response = requests.post(url, json=data, headers=test_headers, timeout=10)
+            elif method == 'PUT':
+                response = requests.put(url, json=data, headers=test_headers, timeout=10)
             elif method == 'DELETE':
                 response = requests.delete(url, headers=test_headers, timeout=10)
 
@@ -326,6 +328,224 @@ class CDPAPITester:
             return True
         return False
 
+    # NEW FEATURE TESTS
+
+    def test_posts_create_with_tags(self, group_id):
+        """Test create post with tags"""
+        timestamp = datetime.now().strftime('%H%M%S')
+        test_data = {
+            "group_id": group_id,
+            "title": f"Tagged Post {timestamp}",
+            "content": "This is a test post with tags.",
+            "tags": ["testing", "api", "cdp"]
+        }
+        
+        success, response = self.run_test(
+            "Posts - Create Post with Tags",
+            "POST",
+            "posts",
+            201,
+            data=test_data
+        )
+        
+        if success and response.get('success'):
+            post_data = response.get('data', {})
+            if 'tags' in post_data:
+                print(f"   Created post with tags: {post_data.get('tags')}")
+            return post_data.get('post_id')
+        return None
+
+    def test_posts_update(self, post_id):
+        """Test update post (author only)"""
+        test_data = {
+            "title": "Updated Test Post",
+            "content": "This post has been updated via API test.",
+            "tags": ["updated", "test"]
+        }
+        
+        success, response = self.run_test(
+            f"Posts - Update Post {post_id}",
+            "PUT",
+            f"posts/{post_id}",
+            200,
+            data=test_data
+        )
+        return success and response.get('success')
+
+    def test_posts_update_unauthorized(self, post_id):
+        """Test update post by non-author (should fail with 403)"""
+        # First, create a new user to test unauthorized access
+        timestamp = datetime.now().strftime('%H%M%S')
+        register_data = {
+            "username": f"unauthorized_{timestamp}",
+            "email": f"unauth_{timestamp}@cdp.com",
+            "password": "testpass123"
+        }
+        
+        # Save current token
+        original_token = self.token
+        
+        # Register new user
+        success, response = self.run_test(
+            "Auth - Register Unauthorized User",
+            "POST",
+            "auth/register",
+            201,
+            data=register_data
+        )
+        
+        if success and response.get('success'):
+            # Use new user's token
+            self.token = response['data']['token']
+            
+            # Try to update post (should fail)
+            test_data = {
+                "title": "Unauthorized Update",
+                "content": "This should fail.",
+                "tags": ["unauthorized"]
+            }
+            
+            success, response = self.run_test(
+                f"Posts - Update Post {post_id} (Unauthorized)",
+                "PUT",
+                f"posts/{post_id}",
+                403,
+                data=test_data
+            )
+            
+            # Restore original token
+            self.token = original_token
+            return success
+        
+        # Restore original token if registration failed
+        self.token = original_token
+        return False
+
+    def test_posts_delete(self, post_id):
+        """Test delete post (author only)"""
+        success, response = self.run_test(
+            f"Posts - Delete Post {post_id}",
+            "DELETE",
+            f"posts/{post_id}",
+            200
+        )
+        return success and response.get('success')
+
+    def test_posts_search_keyword(self):
+        """Test search posts by keyword"""
+        success, response = self.run_test(
+            "Posts - Search by Keyword",
+            "GET",
+            "posts/search?q=test",
+            200
+        )
+        
+        if success and response.get('success'):
+            posts = response.get('data', [])
+            print(f"   Found {len(posts)} posts matching 'test'")
+            return True
+        return False
+
+    def test_posts_search_tag(self):
+        """Test search posts by tag"""
+        success, response = self.run_test(
+            "Posts - Search by Tag",
+            "GET",
+            "posts/search?tag=testing",
+            200
+        )
+        
+        if success and response.get('success'):
+            posts = response.get('data', [])
+            print(f"   Found {len(posts)} posts with tag 'testing'")
+            return True
+        return False
+
+    def test_posts_search_both(self):
+        """Test search posts by both keyword and tag"""
+        success, response = self.run_test(
+            "Posts - Search by Keyword and Tag",
+            "GET",
+            "posts/search?q=test&tag=api",
+            200
+        )
+        
+        if success and response.get('success'):
+            posts = response.get('data', [])
+            print(f"   Found {len(posts)} posts matching both criteria")
+            return True
+        return False
+
+    def test_profile_get(self, user_id):
+        """Test get user profile"""
+        success, response = self.run_test(
+            f"Profile - Get User Profile {user_id}",
+            "GET",
+            f"profile/{user_id}",
+            200
+        )
+        
+        if success and response.get('success'):
+            profile = response.get('data', {})
+            stats = profile.get('stats', {})
+            print(f"   Profile stats - Posts: {stats.get('total_posts', 0)}, Comments: {stats.get('total_comments', 0)}, Groups: {stats.get('total_groups', 0)}, Karma: {stats.get('karma', 0)}")
+            return True
+        return False
+
+    def test_profile_update(self):
+        """Test update own profile"""
+        test_data = {
+            "bio": "Updated bio from API test",
+            "avatar_color": "#FF6B6B"
+        }
+        
+        success, response = self.run_test(
+            "Profile - Update Own Profile",
+            "PUT",
+            "profile",
+            200,
+            data=test_data
+        )
+        return success and response.get('success')
+
+    def test_groups_private_access(self):
+        """Test private group access control"""
+        # Create a private group
+        timestamp = datetime.now().strftime('%H%M%S')
+        test_data = {
+            "name": f"Private Test Group {timestamp}",
+            "description": "A private test group",
+            "is_private": True
+        }
+        
+        success, response = self.run_test(
+            "Groups - Create Private Group",
+            "POST",
+            "groups",
+            201,
+            data=test_data
+        )
+        
+        if success and response.get('success'):
+            private_group_id = response.get('data', {}).get('group_id')
+            
+            # Test group details include membership info
+            success, response = self.run_test(
+                f"Groups - Get Private Group {private_group_id} Details",
+                "GET",
+                f"groups/{private_group_id}",
+                200
+            )
+            
+            if success and response.get('success'):
+                group_data = response.get('data', {})
+                is_member = group_data.get('is_member', False)
+                user_role = group_data.get('user_role')
+                print(f"   Private group - Member: {is_member}, Role: {user_role}")
+                return private_group_id
+        
+        return None
+
     def run_all_tests(self):
         """Run comprehensive API tests"""
         print("🚀 Starting CDP API Tests...")
@@ -393,6 +613,40 @@ class CDPAPITester:
             self.test_votes_get_count(new_post_id)
             self.test_votes_downvote(new_post_id)
             self.test_votes_get_count(new_post_id)
+
+        # NEW FEATURE TESTS
+        print("\n🆕 Testing New Features...")
+        
+        # Test posts with tags
+        print("\n🏷️ Testing Posts with Tags...")
+        tagged_post_id = self.test_posts_create_with_tags(test_group_id)
+        
+        # Test post edit/delete (author only)
+        print("\n✏️ Testing Post Edit/Delete...")
+        if tagged_post_id:
+            self.test_posts_update(tagged_post_id)
+            self.test_posts_update_unauthorized(tagged_post_id)
+            # Don't delete yet, we need it for search tests
+        
+        # Test search functionality
+        print("\n🔍 Testing Search...")
+        self.test_posts_search_keyword()
+        self.test_posts_search_tag()
+        self.test_posts_search_both()
+        
+        # Now delete the tagged post
+        if tagged_post_id:
+            self.test_posts_delete(tagged_post_id)
+        
+        # Test profile functionality
+        print("\n👤 Testing Profiles...")
+        if self.user_id:
+            self.test_profile_get(self.user_id)
+            self.test_profile_update()
+        
+        # Test private group access control
+        print("\n🔒 Testing Private Group Access...")
+        private_group_id = self.test_groups_private_access()
 
         return True
 

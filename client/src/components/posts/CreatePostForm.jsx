@@ -5,6 +5,7 @@ import { getAllGroups } from "../../api/groups";
 export default function CreatePostForm({ groupId, onPostCreated }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [tagsInput, setTagsInput] = useState("");
   const [selectedGroup, setSelectedGroup] = useState(groupId || "");
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -51,11 +52,13 @@ export default function CreatePostForm({ groupId, onPostCreated }) {
         group_id: groupId || selectedGroup,
         title: title.trim(),
         content: content.trim(),
+        tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
       });
 
       if (res.success) {
         setTitle("");
         setContent("");
+        setTagsInput("");
         setOpen(false);
         onPostCreated(res.data);
       }
@@ -180,6 +183,26 @@ export default function CreatePostForm({ groupId, onPostCreated }) {
                            text-[#F0F0FF] placeholder-[#2E2E42]
                            focus:outline-none focus:border-[#C8FF00]
                            transition-colors duration-200 font-body text-base"
+              />
+            </div>
+
+            {/* Tags */}
+            <div>
+              <label className="block text-xs font-semibold tracking-widest
+                                text-[#52526E] uppercase mb-2">
+                Tags <span className="text-[#2E2E42] normal-case">(comma separated, optional)</span>
+              </label>
+              <input
+                type="text"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="e.g. campus, tech, help"
+                data-testid="create-post-tags-input"
+                className="w-full px-4 py-3 rounded-lg
+                           bg-[#0D0D15] border border-[#1C1C2E]
+                           text-[#F0F0FF] placeholder-[#2E2E42]
+                           focus:outline-none focus:border-[#C8FF00]
+                           transition-colors duration-200 font-body text-sm"
               />
             </div>
 
