@@ -75,6 +75,7 @@ export default function LoginPage() {
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   required={!isLogin}
+                  data-testid="auth-username-input"
                   className="w-full px-4 py-3 rounded-lg bg-[#0D0D15] border border-[#1C1C2E] text-[#F0F0FF] placeholder-[#2E2E42] focus:outline-none focus:border-[#C8FF00] transition-colors font-body"
                   placeholder="Choose a username"
                 />
@@ -90,6 +91,7 @@ export default function LoginPage() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
+                data-testid="auth-email-input"
                 className="w-full px-4 py-3 rounded-lg bg-[#0D0D15] border border-[#1C1C2E] text-[#F0F0FF] placeholder-[#2E2E42] focus:outline-none focus:border-[#C8FF00] transition-colors font-body"
                 placeholder="your@email.com"
               />
@@ -104,6 +106,7 @@ export default function LoginPage() {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
+                data-testid="auth-password-input"
                 className="w-full px-4 py-3 rounded-lg bg-[#0D0D15] border border-[#1C1C2E] text-[#F0F0FF] placeholder-[#2E2E42] focus:outline-none focus:border-[#C8FF00] transition-colors font-body"
                 placeholder="••••••••"
               />
@@ -118,6 +121,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
+              data-testid="auth-submit-button"
               className="w-full px-6 py-3 rounded-lg bg-[#C8FF00] text-[#090910] font-bold font-body text-sm tracking-wide hover:bg-[#d8ff33] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Create Account'}
@@ -130,6 +134,7 @@ export default function LoginPage() {
                 setIsLogin(!isLogin);
                 setError(null);
               }}
+              data-testid="auth-toggle-button"
               className="text-sm text-[#52526E] hover:text-[#C8FF00] transition-colors font-body"
             >
               {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}

@@ -208,6 +208,7 @@ export default function PostCard({ post }) {
             <button
               onClick={() => handleVote('UPVOTE')}
               disabled={voting}
+              data-testid={`upvote-btn-${post_id}`}
               className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-all ${
                 userVote === 'UPVOTE'
                   ? 'bg-[#C8FF00] text-[#090910]'
@@ -227,6 +228,7 @@ export default function PostCard({ post }) {
             <button
               onClick={() => handleVote('DOWNVOTE')}
               disabled={voting}
+              data-testid={`downvote-btn-${post_id}`}
               className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-all ${
                 userVote === 'DOWNVOTE'
                   ? 'bg-red-400 text-[#090910]'
@@ -241,6 +243,7 @@ export default function PostCard({ post }) {
           {/* Comments button */}
           <button
             onClick={loadComments}
+            data-testid={`comments-btn-${post_id}`}
             className="flex items-center gap-2 text-xs text-[#52526E] hover:text-[#C8FF00] transition-colors font-body"
           >
             <span>💬</span>

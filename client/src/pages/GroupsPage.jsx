@@ -169,6 +169,7 @@ export default function GroupsPage() {
 
         <button
           onClick={() => setShowCreateModal(true)}
+          data-testid="create-group-button"
           className="px-6 py-3 rounded-lg bg-[#C8FF00] text-[#090910] font-bold font-body text-sm tracking-wide hover:bg-[#d8ff33] active:scale-95 transition-all duration-200"
         >
           + Create Group
