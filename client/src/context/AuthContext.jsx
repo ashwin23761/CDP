@@ -1,50 +1,51 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { getCurrentUser } from '../api/auth';
 
 const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('cdp_token'));
+  const skipFetchRef = useRef(false);
 
   // Load user on mount if token exists
   useEffect(() => {
     const loadUser = async () => {
-      if (token) {
+      const token = localStorage.getItem('cdp_token');
+      if (token && !skipFetchRef.current) {
         try {
           const response = await getCurrentUser();
           if (response.success) {
             setUser(response.data);
+          } else {
+            localStorage.removeItem('cdp_token');
           }
         } catch (err) {
           console.error('Failed to load user:', err);
-          logout();
+          localStorage.removeItem('cdp_token');
         }
       }
+      skipFetchRef.current = false;
       setLoading(false);
     };
-
     loadUser();
-  }, [token]);
+  }, []);
 
   const login = (userData, userToken) => {
     localStorage.setItem('cdp_token', userToken);
-    setToken(userToken);
+    skipFetchRef.current = true;
     setUser(userData);
+    setLoading(false);
   };
 
   const logout = () => {
     localStorage.removeItem('cdp_token');
-    setToken(null);
     setUser(null);
   };
 
