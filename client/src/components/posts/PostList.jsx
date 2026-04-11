@@ -23,16 +23,16 @@ function SkeletonCard() {
   );
 }
 
-export default function PostList({ newPost }) {
-  const [posts,   setPosts]   = useState([]);
+export default function PostList({ groupId, newPost }) {
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
+  const [error, setError] = useState(null);
 
   // Initial fetch
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await getAllPosts();
+        const res = await getAllPosts(groupId);
         if (res.success) setPosts(res.data);
       } catch {
         setError("Could not load posts. Is the server running?");
@@ -41,7 +41,7 @@ export default function PostList({ newPost }) {
       }
     };
     fetchPosts();
-  }, []);
+  }, [groupId]);
 
   // Prepend optimistically when CreatePostForm emits a new post
   useEffect(() => {

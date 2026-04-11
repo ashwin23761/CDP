@@ -1,16 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPost } from "../../api/posts";
+import { getAllGroups } from "../../api/groups";
 
-// Hardcoded for Week 2 — Member A will wire in real auth/session in their work.
-// Member D will standardize this when connecting frontend ↔ backend.
-const TEMP_USER_ID = 1;
-
-export default function CreatePostForm({ onPostCreated }) {
-  const [title,   setTitle]   = useState("");
+export default function CreatePostForm({ groupId, onPostCreated }) {
+  const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState(groupId || "");
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState(null);
-  const [open,    setOpen]    = useState(false);
+  const [error, setError] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    // Fetch groups if not on a specific group page
+    if (!groupId) {
+      const fetchGroups = async () => {
+        try {
+          const response = await getAllGroups();
+          if (response.success) {
+            setGroups(response.data);
+            if (response.data.length > 0) {
+              setSelectedGroup(response.data[0].group_id);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load groups:', err);
+        }
+      };
+      fetchGroups();
+    }
+  }, [groupId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,10 +40,15 @@ export default function CreatePostForm({ onPostCreated }) {
       return;
     }
 
+    if (!selectedGroup && !groupId) {
+      setError("Please select a group.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await createPost({
-        user_id: TEMP_USER_ID,
+        group_id: groupId || selectedGroup,
         title: title.trim(),
         content: content.trim(),
       });
@@ -33,7 +57,7 @@ export default function CreatePostForm({ onPostCreated }) {
         setTitle("");
         setContent("");
         setOpen(false);
-        onPostCreated(res.data); // bubble up to parent
+        onPostCreated(res.data);
       }
     } catch (err) {
       const msg =
@@ -47,7 +71,6 @@ export default function CreatePostForm({ onPostCreated }) {
 
   return (
     <div className="mb-10">
-      {/* Toggle button */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
@@ -71,14 +94,12 @@ export default function CreatePostForm({ onPostCreated }) {
         </button>
       )}
 
-      {/* Form panel */}
       {open && (
         <div
           className="rounded-xl border border-[#C8FF00] bg-[#101018] p-6
                         shadow-[0_0_40px_rgba(200,255,0,0.08)]"
           style={{ animation: "fadeUp 0.3s ease forwards" }}
         >
-          {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-3xl tracking-wider text-[#C8FF00]">
               NEW POST
@@ -95,6 +116,31 @@ export default function CreatePostForm({ onPostCreated }) {
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {/* Group selection (only if not on a specific group page) */}
+            {!groupId && groups.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold tracking-widest
+                                  text-[#52526E] uppercase mb-2">
+                  Select Group
+                </label>
+                <select
+                  value={selectedGroup}
+                  onChange={(e) => setSelectedGroup(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg
+                             bg-[#0D0D15] border border-[#1C1C2E]
+                             text-[#F0F0FF]
+                             focus:outline-none focus:border-[#C8FF00]
+                             transition-colors duration-200 font-body text-base"
+                >
+                  {groups.map((group) => (
+                    <option key={group.group_id} value={group.group_id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Title */}
             <div>
               <label className="block text-xs font-semibold tracking-widest
@@ -137,7 +183,6 @@ export default function CreatePostForm({ onPostCreated }) {
               />
             </div>
 
-            {/* Error */}
             {error && (
               <p className="text-sm text-red-400 bg-red-900/20
                             border border-red-800 rounded-lg px-4 py-2">
@@ -145,7 +190,6 @@ export default function CreatePostForm({ onPostCreated }) {
               </p>
             )}
 
-            {/* Actions */}
             <div className="flex gap-3 justify-end pt-2">
               <button
                 type="button"

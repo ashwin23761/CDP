@@ -1,8 +1,18 @@
-@tailwind base;
-@import "tailwindcss/preflight";
-@tailwind utilities;
+@import "tailwindcss";
 
-/* ── Base ─────────────────────────────────────────────────── */
+/* ── Custom theme ─────────────────────────────────────── */
+@theme {
+  --font-display: 'Bebas Neue', cursive;
+  --font-body: 'Nunito', sans-serif;
+  --color-bg: #090910;
+  --color-surface: #101018;
+  --color-border: #1C1C2E;
+  --color-accent: #C8FF00;
+  --color-muted: #52526E;
+  --color-primary: #F0F0FF;
+}
+
+/* ── Base ─────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
 html { scroll-behavior: smooth; }
@@ -15,13 +25,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Custom scrollbar ─────────────────────────────────────── */
+/* ── Custom scrollbar ─────────────────────────────────── */
 ::-webkit-scrollbar              { width: 5px; }
 ::-webkit-scrollbar-track        { background: #101018; }
 ::-webkit-scrollbar-thumb        { background: #1C1C2E; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover  { background: #C8FF00; }
 
-/* ── Noise overlay for depth ──────────────────────────────── */
+/* ── Noise overlay for depth ──────────────────────────── */
 body::before {
   content: '';
   position: fixed;
@@ -32,12 +42,12 @@ body::before {
   z-index: 0;
 }
 
-/* ── Accent glow ──────────────────────────────────────────── */
+/* ── Accent glow ──────────────────────────────────────── */
 .accent-glow {
   box-shadow: 0 0 24px rgba(200, 255, 0, 0.15);
 }
 
-/* ── Staggered card entrance ──────────────────────────────── */
+/* ── Staggered card entrance ──────────────────────────── */
 .post-card { opacity: 0; animation: fadeUp 0.45s ease forwards; }
 .post-card:nth-child(1) { animation-delay: 0.05s; }
 .post-card:nth-child(2) { animation-delay: 0.10s; }
@@ -51,5 +61,5 @@ body::before {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Textarea auto-resize feel ────────────────────────────── */
+/* ── Textarea auto-resize feel ────────────────────────── */
 textarea { resize: vertical; min-height: 100px; }

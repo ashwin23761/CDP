@@ -2,16 +2,17 @@ const { createPost, getAllPosts, getPostById } = require("../models/postsModel")
 
 /**
  * POST /posts
- * Body: { user_id, title, content }
+ * Body: { group_id, title, content }
  */
 const handleCreatePost = async (req, res) => {
-  const { user_id, title, content } = req.body;
+  const { group_id, title, content } = req.body;
+  const user_id = req.user.user_id; // From JWT token
 
   // --- Basic validation ---
-  if (!user_id || !title || !content) {
+  if (!group_id || !title || !content) {
     return res.status(400).json({
       success: false,
-      message: "user_id, title, and content are all required.",
+      message: "group_id, title, and content are all required.",
     });
   }
 
@@ -23,7 +24,7 @@ const handleCreatePost = async (req, res) => {
   }
 
   try {
-    const newPost = await createPost(user_id, title.trim(), content.trim());
+    const newPost = await createPost(user_id, group_id, title.trim(), content.trim());
 
     return res.status(201).json({
       success: true,
@@ -31,11 +32,11 @@ const handleCreatePost = async (req, res) => {
       data: newPost,
     });
   } catch (err) {
-    // Foreign-key violation → user_id does not exist
+    // Foreign-key violation → user_id or group_id does not exist
     if (err.code === "ER_NO_REFERENCED_ROW_2") {
       return res.status(404).json({
         success: false,
-        message: `User with id ${user_id} does not exist.`,
+        message: `User or group does not exist.`,
       });
     }
 
@@ -49,11 +50,13 @@ const handleCreatePost = async (req, res) => {
 
 /**
  * GET /posts
- * Returns all posts, newest first.
+ * Query params: ?group_id=X (optional)
+ * Returns all posts, newest first, optionally filtered by group
  */
-const handleGetAllPosts = async (_req, res) => {
+const handleGetAllPosts = async (req, res) => {
   try {
-    const posts = await getAllPosts();
+    const { group_id } = req.query;
+    const posts = await getAllPosts(group_id);
 
     return res.status(200).json({
       success: true,

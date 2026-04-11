@@ -1,22 +1,21 @@
-import axios from "axios";
+import api from './axios';
 
-// Vite proxy rewrites /api → http://localhost:5000
-// so all requests here automatically hit the Express backend.
-const api = axios.create({ baseURL: "/api" });
-
-/**
- * Create a new post.
- * @param {{ user_id: number, title: string, content: string }} payload
- */
+// Create post
 export const createPost = async (payload) => {
-  const { data } = await api.post("/posts", payload);
-  return data; // { success, message, data: post }
+  const { data } = await api.post('/posts', payload);
+  return data;
 };
 
-/**
- * Fetch all posts (newest first).
- */
-export const getAllPosts = async () => {
-  const { data } = await api.get("/posts");
-  return data; // { success, count, data: post[] }
+// Get all posts (optionally filter by group)
+export const getAllPosts = async (group_id) => {
+  const { data } = await api.get('/posts', {
+    params: group_id ? { group_id } : {}
+  });
+  return data;
+};
+
+// Get post by ID
+export const getPostById = async (id) => {
+  const { data } = await api.get(`/posts/${id}`);
+  return data;
 };
