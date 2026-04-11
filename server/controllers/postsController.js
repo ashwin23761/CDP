@@ -25,8 +25,8 @@ const handleCreatePost = async (req, res) => {
 
 const handleGetAllPosts = async (req, res) => {
   try {
-    const { group_id } = req.query;
-    const posts = await getAllPosts(group_id);
+    const { group_id, sort } = req.query;
+    const posts = await getAllPosts(group_id, sort);
     return res.status(200).json({ success: true, count: posts.length, data: posts });
   } catch (err) {
     console.error("[handleGetAllPosts]", err);

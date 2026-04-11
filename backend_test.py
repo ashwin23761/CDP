@@ -278,6 +278,274 @@ class CDPAPITester:
         if success and response.get('success'):
             comments = response.get('data', [])
             print(f"   Found {len(comments)} comments")
+            return comments
+        return []
+
+    # NEW ITERATION 3 FEATURES - NESTED COMMENTS & DELETION
+
+    def test_comments_create_nested(self, post_id, parent_comment_id):
+        """Test create nested comment (reply)"""
+        timestamp = datetime.now().strftime('%H%M%S')
+        test_data = {
+            "post_id": post_id,
+            "content": f"Test reply {timestamp} - This is a nested comment.",
+            "parent_id": parent_comment_id
+        }
+        
+        success, response = self.run_test(
+            "Comments - Create Nested Comment (Reply)",
+            "POST",
+            "comments",
+            201,
+            data=test_data
+        )
+        
+        if success and response.get('success'):
+            return response.get('data', {}).get('comment_id')
+        return None
+
+    def test_comments_create_invalid_parent(self, post_id, invalid_parent_id):
+        """Test create comment with invalid parent_id (should fail)"""
+        timestamp = datetime.now().strftime('%H%M%S')
+        test_data = {
+            "post_id": post_id,
+            "content": f"Test invalid reply {timestamp}",
+            "parent_id": invalid_parent_id
+        }
+        
+        success, response = self.run_test(
+            "Comments - Create Comment with Invalid Parent",
+            "POST",
+            "comments",
+            404,
+            data=test_data
+        )
+        return success
+
+    def test_comments_create_wrong_post_parent(self, post_id, other_post_comment_id):
+        """Test create comment with parent from different post (should fail)"""
+        timestamp = datetime.now().strftime('%H%M%S')
+        test_data = {
+            "post_id": post_id,
+            "content": f"Test wrong post reply {timestamp}",
+            "parent_id": other_post_comment_id
+        }
+        
+        success, response = self.run_test(
+            "Comments - Create Comment with Parent from Different Post",
+            "POST",
+            "comments",
+            400,
+            data=test_data
+        )
+        return success
+
+    def test_comments_delete_author(self, comment_id):
+        """Test delete comment by author"""
+        success, response = self.run_test(
+            f"Comments - Delete Comment {comment_id} (Author)",
+            "DELETE",
+            f"comments/{comment_id}",
+            200
+        )
+        return success and response.get('success')
+
+    def test_comments_delete_unauthorized(self, comment_id):
+        """Test delete comment by non-author (should fail with 403)"""
+        # Create a new user to test unauthorized access
+        timestamp = datetime.now().strftime('%H%M%S')
+        register_data = {
+            "username": f"unauth_comment_{timestamp}",
+            "email": f"unauth_comment_{timestamp}@cdp.com",
+            "password": "testpass123"
+        }
+        
+        # Save current token
+        original_token = self.token
+        
+        # Register new user
+        success, response = self.run_test(
+            "Auth - Register User for Comment Delete Test",
+            "POST",
+            "auth/register",
+            201,
+            data=register_data
+        )
+        
+        if success and response.get('success'):
+            # Use new user's token
+            self.token = response['data']['token']
+            
+            # Try to delete comment (should fail)
+            success, response = self.run_test(
+                f"Comments - Delete Comment {comment_id} (Unauthorized)",
+                "DELETE",
+                f"comments/{comment_id}",
+                403
+            )
+            
+            # Restore original token
+            self.token = original_token
+            return success
+        
+        # Restore original token if registration failed
+        self.token = original_token
+        return False
+
+    def test_comments_cascade_delete(self, post_id):
+        """Test cascade deletion of comments and replies"""
+        # Create parent comment
+        parent_id = self.test_comments_create(post_id)
+        if not parent_id:
+            return False
+        
+        # Create nested replies
+        reply1_id = self.test_comments_create_nested(post_id, parent_id)
+        reply2_id = self.test_comments_create_nested(post_id, parent_id)
+        
+        if not reply1_id or not reply2_id:
+            return False
+        
+        # Create nested reply to reply1 (3rd level)
+        nested_reply_id = self.test_comments_create_nested(post_id, reply1_id)
+        if not nested_reply_id:
+            return False
+        
+        # Get comments before deletion
+        comments_before = self.test_comments_get_by_post(post_id)
+        comment_count_before = len(comments_before)
+        
+        # Delete parent comment (should cascade delete all replies)
+        delete_success = self.test_comments_delete_author(parent_id)
+        if not delete_success:
+            return False
+        
+        # Get comments after deletion
+        comments_after = self.test_comments_get_by_post(post_id)
+        comment_count_after = len(comments_after)
+        
+        # Should have deleted 4 comments (parent + 2 replies + 1 nested reply)
+        expected_deleted = 4
+        actual_deleted = comment_count_before - comment_count_after
+        
+        if actual_deleted == expected_deleted:
+            print(f"   Cascade delete successful: {actual_deleted} comments deleted")
+            return True
+        else:
+            print(f"   Cascade delete failed: expected {expected_deleted}, actual {actual_deleted}")
+            return False
+
+    # POST SORTING TESTS
+
+    def test_posts_sort_newest(self, group_id=None):
+        """Test get posts sorted by newest (default)"""
+        endpoint = "posts?sort=newest"
+        if group_id:
+            endpoint += f"&group_id={group_id}"
+        
+        success, response = self.run_test(
+            "Posts - Sort by Newest",
+            "GET",
+            endpoint,
+            200
+        )
+        
+        if success and response.get('success'):
+            posts = response.get('data', [])
+            print(f"   Found {len(posts)} posts sorted by newest")
+            # Verify sorting (newest first)
+            if len(posts) > 1:
+                for i in range(len(posts) - 1):
+                    current_date = posts[i].get('created_at', '')
+                    next_date = posts[i + 1].get('created_at', '')
+                    if current_date < next_date:
+                        print(f"   ❌ Sort order incorrect: {current_date} < {next_date}")
+                        return False
+                print("   ✅ Sort order verified (newest first)")
+            return True
+        return False
+
+    def test_posts_sort_oldest(self, group_id=None):
+        """Test get posts sorted by oldest"""
+        endpoint = "posts?sort=oldest"
+        if group_id:
+            endpoint += f"&group_id={group_id}"
+        
+        success, response = self.run_test(
+            "Posts - Sort by Oldest",
+            "GET",
+            endpoint,
+            200
+        )
+        
+        if success and response.get('success'):
+            posts = response.get('data', [])
+            print(f"   Found {len(posts)} posts sorted by oldest")
+            # Verify sorting (oldest first)
+            if len(posts) > 1:
+                for i in range(len(posts) - 1):
+                    current_date = posts[i].get('created_at', '')
+                    next_date = posts[i + 1].get('created_at', '')
+                    if current_date > next_date:
+                        print(f"   ❌ Sort order incorrect: {current_date} > {next_date}")
+                        return False
+                print("   ✅ Sort order verified (oldest first)")
+            return True
+        return False
+
+    def test_posts_sort_votes(self, group_id=None):
+        """Test get posts sorted by vote total"""
+        endpoint = "posts?sort=votes"
+        if group_id:
+            endpoint += f"&group_id={group_id}"
+        
+        success, response = self.run_test(
+            "Posts - Sort by Top Voted",
+            "GET",
+            endpoint,
+            200
+        )
+        
+        if success and response.get('success'):
+            posts = response.get('data', [])
+            print(f"   Found {len(posts)} posts sorted by votes")
+            # Verify sorting (highest votes first)
+            if len(posts) > 1:
+                for i in range(len(posts) - 1):
+                    current_votes = int(posts[i].get('vote_total', 0))
+                    next_votes = int(posts[i + 1].get('vote_total', 0))
+                    if current_votes < next_votes:
+                        print(f"   ❌ Sort order incorrect: {current_votes} < {next_votes}")
+                        return False
+                print("   ✅ Sort order verified (highest votes first)")
+            return True
+        return False
+
+    def test_posts_sort_comments(self, group_id=None):
+        """Test get posts sorted by comment count"""
+        endpoint = "posts?sort=comments"
+        if group_id:
+            endpoint += f"&group_id={group_id}"
+        
+        success, response = self.run_test(
+            "Posts - Sort by Most Discussed",
+            "GET",
+            endpoint,
+            200
+        )
+        
+        if success and response.get('success'):
+            posts = response.get('data', [])
+            print(f"   Found {len(posts)} posts sorted by comments")
+            # Verify sorting (most comments first)
+            if len(posts) > 1:
+                for i in range(len(posts) - 1):
+                    current_comments = int(posts[i].get('comment_count', 0))
+                    next_comments = int(posts[i + 1].get('comment_count', 0))
+                    if current_comments < next_comments:
+                        print(f"   ❌ Sort order incorrect: {current_comments} < {next_comments}")
+                        return False
+                print("   ✅ Sort order verified (most comments first)")
             return True
         return False
 
@@ -633,6 +901,37 @@ class CDPAPITester:
         self.test_posts_search_keyword()
         self.test_posts_search_tag()
         self.test_posts_search_both()
+
+        # ITERATION 3 NEW FEATURES
+        print("\n🆕 Testing Iteration 3 Features...")
+        
+        # Test post sorting
+        print("\n📊 Testing Post Sorting...")
+        self.test_posts_sort_newest(test_group_id)
+        self.test_posts_sort_oldest(test_group_id)
+        self.test_posts_sort_votes(test_group_id)
+        self.test_posts_sort_comments(test_group_id)
+        
+        # Test nested comments and deletion
+        print("\n💬 Testing Nested Comments & Deletion...")
+        if new_post_id:
+            # Test comment deletion authorization
+            comment_id = self.test_comments_create(new_post_id)
+            if comment_id:
+                self.test_comments_delete_unauthorized(comment_id)
+                # Don't delete yet, we need it for nested tests
+                
+                # Test nested comment creation
+                reply_id = self.test_comments_create_nested(new_post_id, comment_id)
+                if reply_id:
+                    # Test invalid parent scenarios
+                    self.test_comments_create_invalid_parent(new_post_id, 99999)
+                    
+                    # Test cascade deletion
+                    self.test_comments_cascade_delete(new_post_id)
+                
+                # Clean up - delete the original comment
+                self.test_comments_delete_author(comment_id)
         
         # Now delete the tagged post
         if tagged_post_id:

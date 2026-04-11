@@ -18,7 +18,7 @@ const createPost = async (user_id, group_id, title, content, tags) => {
   return rows[0];
 };
 
-const getAllPosts = async (group_id) => {
+const getAllPosts = async (group_id, sort) => {
   let query = `
     SELECT 
       p.*, g.name as group_name, u.anonymous_name,
@@ -37,7 +37,23 @@ const getAllPosts = async (group_id) => {
     query += " WHERE p.group_id = ?";
     params.push(group_id);
   }
-  query += " GROUP BY p.post_id ORDER BY p.created_at DESC";
+  query += " GROUP BY p.post_id";
+
+  // Sorting
+  switch (sort) {
+    case 'votes':
+      query += " ORDER BY vote_total DESC, p.created_at DESC";
+      break;
+    case 'comments':
+      query += " ORDER BY comment_count DESC, p.created_at DESC";
+      break;
+    case 'oldest':
+      query += " ORDER BY p.created_at ASC";
+      break;
+    default: // 'newest' or undefined
+      query += " ORDER BY p.created_at DESC";
+  }
+
   const [rows] = await pool.execute(query, params);
   return rows;
 };
