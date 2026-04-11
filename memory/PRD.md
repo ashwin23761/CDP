@@ -1,7 +1,7 @@
 # CDP - Community Discussion Platform
 
 ## Original Problem Statement
-Build a Community Discussion Platform (CDP) based on a PDF specification. A pseudo-anonymous web application for campus environments inspired by Reddit. User chose to follow PDF specifications exactly with Node.js + Express backend, MySQL database, and React + Vite frontend.
+Build a Community Discussion Platform (CDP) - a pseudo-anonymous web app for campus environments. User chose Node.js + Express backend, MySQL database, React + Vite frontend following PDF specifications exactly.
 
 ## Architecture
 - **Frontend**: React 19 + Vite 8 + Tailwind CSS v4
@@ -10,77 +10,49 @@ Build a Community Discussion Platform (CDP) based on a PDF specification. A pseu
 - **Auth**: JWT tokens (7-day expiry)
 - **File Structure**: `/app/client/`, `/app/server/`, `/app/database/`
 
-## User Personas
-1. **Campus Students** - Primary users posting and discussing anonymously
-2. **Group Admins** - Create and moderate communities/groups
-3. **Viewers** - Browse posts and comments
+## What's Been Implemented
 
-## Core Requirements
-- User registration with pseudo-anonymous identities
-- Group/Community creation and management
-- Post creation within groups
-- Comment system
-- Upvote/Downvote voting system
-- Responsive dark theme UI
-
-## What's Been Implemented (Jan 2026)
-### Backend APIs (100% working)
-- [x] Auth: Register, Login, Get Current User (JWT-based)
-- [x] Groups: Create, List All, Get by ID, Join, Leave, Get Members, Delete
-- [x] Posts: Create, List All (with group filter), Get by ID
+### Iteration 1 (Jan 2026) - Core MVP
+- [x] Auth: Register, Login, JWT session management
+- [x] Groups: Create, List, Join, Leave, Delete (admin)
+- [x] Posts: Create, List (with group filter)
 - [x] Comments: Create, Get by Post
-- [x] Votes: Vote (toggle upvote/downvote), Get Count, Get User Vote
+- [x] Votes: Upvote/Downvote with toggle
+- [x] Dark theme UI with neon accents
 
-### Frontend Pages (100% working)
-- [x] Login/Register page with form toggle
-- [x] Feed page (all posts from all groups)
-- [x] Groups listing page with Create Group modal
-- [x] Group detail page with join/leave and posts
-- [x] PostCard with voting, comments inline
-- [x] Navbar with Feed/Groups navigation and logout
+### Iteration 2 (Jan 2026) - Feature Expansion
+- [x] **Edit/Delete Posts**: Author-only ··· menu, inline editing with tag support
+- [x] **Search**: Keyword search + tag-based search, dedicated search page, navbar search bar
+- [x] **User Profiles**: Profile page with avatar, bio (editable), stats (posts/comments/groups/karma), Posts & Groups tabs
+- [x] **Private Group Access Control**: Private groups hide posts from non-members, membership status/role shown on group detail page
+- [x] **Tags System**: Posts can have tags (comma-separated), tags display on PostCard, clickable tags navigate to search
 
-### Database
-- [x] Users table (with anonymous names)
-- [x] Groups table (with private/public flag)
-- [x] Group Members table (admin/member roles)
-- [x] Posts table (linked to groups)
-- [x] Comments table
-- [x] Votes table (unique per user-post)
-- [x] Seed data (4 default groups, sample posts)
+### Database Tables
+- users (user_id, username, email, password_hash, anonymous_name, bio, avatar_color, created_at)
+- groups_table (group_id, name, description, creator_id, is_private, created_at)
+- group_members (id, group_id, user_id, role, joined_at)
+- posts (post_id, user_id, group_id, title, content, tags, created_at)
+- comments (comment_id, post_id, user_id, content, created_at)
+- votes (vote_id, user_id, post_id, vote_type, created_at)
 
 ## Testing Status
-- Backend: 100% (16/16 core functionalities)
-- Frontend: 100% (all UI components and integrations)
+- Iteration 1: Backend 100%, Frontend 100%
+- Iteration 2: Backend 95%, Frontend 100%
 
-## Prioritized Backlog
-### P0 (Critical) - All Done
-- [x] Auth system
-- [x] Posts CRUD
-- [x] Groups CRUD
-
+## Remaining Backlog
 ### P1 (High)
-- [ ] User profile page
-- [ ] Edit/Delete posts
-- [ ] Search functionality
-- [ ] Private group access control
+- [ ] Nested comments (reply to comments)
+- [ ] Delete comments
+- [ ] Post sorting (by votes, date, most commented)
 
 ### P2 (Medium)
-- [ ] Nested comments (reply to comments)
-- [ ] Post categories/tags
-- [ ] User moderation tools
-- [ ] Group invitation system
+- [ ] Group invitation system for private groups
 - [ ] Notification system
+- [ ] Post bookmarks
+- [ ] Admin moderation tools
 
 ### P3 (Low)
 - [ ] Dark/Light theme toggle
-- [ ] Post bookmarks
 - [ ] User reputation system
 - [ ] Admin dashboard
 - [ ] Analytics
-
-## Next Tasks
-1. Add edit/delete functionality for posts and comments
-2. Implement search across posts and groups
-3. Add user profile page
-4. Add proper private group access control
-5. Implement notification system
