@@ -22,22 +22,32 @@ const getAllPosts = async (group_id, sort) => {
   let query = `
     SELECT 
       p.*, g.name as group_name, u.anonymous_name,
-      COUNT(DISTINCT c.comment_id) as comment_count,
-      SUM(CASE WHEN v.vote_type = 'UPVOTE' THEN 1 ELSE 0 END) as upvotes,
-      SUM(CASE WHEN v.vote_type = 'DOWNVOTE' THEN 1 ELSE 0 END) as downvotes,
-      SUM(CASE WHEN v.vote_type = 'UPVOTE' THEN 1 WHEN v.vote_type = 'DOWNVOTE' THEN -1 ELSE 0 END) as vote_total
+      COALESCE(comment_stats.comment_count, 0) as comment_count,
+      COALESCE(vote_stats.upvotes, 0) as upvotes,
+      COALESCE(vote_stats.downvotes, 0) as downvotes,
+      COALESCE(vote_stats.vote_total, 0) as vote_total
     FROM posts p
     LEFT JOIN groups_table g ON p.group_id = g.group_id
     LEFT JOIN users u ON p.user_id = u.user_id
-    LEFT JOIN comments c ON p.post_id = c.post_id
-    LEFT JOIN votes v ON p.post_id = v.post_id
+    LEFT JOIN (
+      SELECT post_id, COUNT(*) as comment_count
+      FROM comments
+      GROUP BY post_id
+    ) comment_stats ON p.post_id = comment_stats.post_id
+    LEFT JOIN (
+      SELECT post_id,
+        SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 ELSE 0 END) as upvotes,
+        SUM(CASE WHEN vote_type = 'DOWNVOTE' THEN 1 ELSE 0 END) as downvotes,
+        SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 WHEN vote_type = 'DOWNVOTE' THEN -1 ELSE 0 END) as vote_total
+      FROM votes
+      GROUP BY post_id
+    ) vote_stats ON p.post_id = vote_stats.post_id
   `;
   const params = [];
   if (group_id) {
     query += " WHERE p.group_id = ?";
     params.push(group_id);
   }
-  query += " GROUP BY p.post_id";
 
   // Sorting
   switch (sort) {
@@ -62,17 +72,27 @@ const getPostById = async (post_id) => {
   const [rows] = await pool.execute(`
     SELECT 
       p.*, g.name as group_name, u.anonymous_name,
-      COUNT(DISTINCT c.comment_id) as comment_count,
-      SUM(CASE WHEN v.vote_type = 'UPVOTE' THEN 1 ELSE 0 END) as upvotes,
-      SUM(CASE WHEN v.vote_type = 'DOWNVOTE' THEN 1 ELSE 0 END) as downvotes,
-      SUM(CASE WHEN v.vote_type = 'UPVOTE' THEN 1 WHEN v.vote_type = 'DOWNVOTE' THEN -1 ELSE 0 END) as vote_total
+      COALESCE(comment_stats.comment_count, 0) as comment_count,
+      COALESCE(vote_stats.upvotes, 0) as upvotes,
+      COALESCE(vote_stats.downvotes, 0) as downvotes,
+      COALESCE(vote_stats.vote_total, 0) as vote_total
     FROM posts p
     LEFT JOIN groups_table g ON p.group_id = g.group_id
     LEFT JOIN users u ON p.user_id = u.user_id
-    LEFT JOIN comments c ON p.post_id = c.post_id
-    LEFT JOIN votes v ON p.post_id = v.post_id
+    LEFT JOIN (
+      SELECT post_id, COUNT(*) as comment_count
+      FROM comments
+      GROUP BY post_id
+    ) comment_stats ON p.post_id = comment_stats.post_id
+    LEFT JOIN (
+      SELECT post_id,
+        SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 ELSE 0 END) as upvotes,
+        SUM(CASE WHEN vote_type = 'DOWNVOTE' THEN 1 ELSE 0 END) as downvotes,
+        SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 WHEN vote_type = 'DOWNVOTE' THEN -1 ELSE 0 END) as vote_total
+      FROM votes
+      GROUP BY post_id
+    ) vote_stats ON p.post_id = vote_stats.post_id
     WHERE p.post_id = ?
-    GROUP BY p.post_id
   `, [post_id]);
   return rows[0] || null;
 };
@@ -99,15 +119,26 @@ const searchPosts = async (query, tag) => {
   let sql = `
     SELECT 
       p.*, g.name as group_name, u.anonymous_name,
-      COUNT(DISTINCT c.comment_id) as comment_count,
-      SUM(CASE WHEN v.vote_type = 'UPVOTE' THEN 1 ELSE 0 END) as upvotes,
-      SUM(CASE WHEN v.vote_type = 'DOWNVOTE' THEN 1 ELSE 0 END) as downvotes,
-      SUM(CASE WHEN v.vote_type = 'UPVOTE' THEN 1 WHEN v.vote_type = 'DOWNVOTE' THEN -1 ELSE 0 END) as vote_total
+      COALESCE(comment_stats.comment_count, 0) as comment_count,
+      COALESCE(vote_stats.upvotes, 0) as upvotes,
+      COALESCE(vote_stats.downvotes, 0) as downvotes,
+      COALESCE(vote_stats.vote_total, 0) as vote_total
     FROM posts p
     LEFT JOIN groups_table g ON p.group_id = g.group_id
     LEFT JOIN users u ON p.user_id = u.user_id
-    LEFT JOIN comments c ON p.post_id = c.post_id
-    LEFT JOIN votes v ON p.post_id = v.post_id
+    LEFT JOIN (
+      SELECT post_id, COUNT(*) as comment_count
+      FROM comments
+      GROUP BY post_id
+    ) comment_stats ON p.post_id = comment_stats.post_id
+    LEFT JOIN (
+      SELECT post_id,
+        SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 ELSE 0 END) as upvotes,
+        SUM(CASE WHEN vote_type = 'DOWNVOTE' THEN 1 ELSE 0 END) as downvotes,
+        SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 WHEN vote_type = 'DOWNVOTE' THEN -1 ELSE 0 END) as vote_total
+      FROM votes
+      GROUP BY post_id
+    ) vote_stats ON p.post_id = vote_stats.post_id
     WHERE 1=1
   `;
   const params = [];
@@ -121,7 +152,7 @@ const searchPosts = async (query, tag) => {
     params.push(tag);
   }
 
-  sql += " GROUP BY p.post_id ORDER BY p.created_at DESC LIMIT 50";
+  sql += " ORDER BY p.created_at DESC LIMIT 50";
   const [rows] = await pool.execute(sql, params);
   return rows;
 };

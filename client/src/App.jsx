@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import GroupsPage from './pages/GroupsPage';
@@ -10,13 +11,13 @@ import ProfilePage from './pages/ProfilePage';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-[#C8FF00] text-xl">Loading...</div></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-black dark:text-[#C8FF00] text-xl">Loading...</div></div>;
   return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
 function AppContent() {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-[#C8FF00] text-xl font-display">Loading CDP...</div></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-black dark:text-[#C8FF00] text-xl font-display">Loading CDP...</div></div>;
 
   return (
     <div className="relative min-h-screen">
@@ -37,9 +38,11 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

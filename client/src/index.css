@@ -18,18 +18,26 @@
 html { scroll-behavior: smooth; }
 
 body {
-  background-color: #090910;
-  color: #F0F0FF;
+  background-color: white;
+  color: black;
   font-family: 'Nunito', sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
 
+.dark body {
+  background-color: #090910;
+  color: #F0F0FF;
+}
+
 /* ── Custom scrollbar ─────────────────────────────────── */
 ::-webkit-scrollbar              { width: 5px; }
-::-webkit-scrollbar-track        { background: #101018; }
-::-webkit-scrollbar-thumb        { background: #1C1C2E; border-radius: 999px; }
+::-webkit-scrollbar-track        { background: #f3f4f6; }
+::-webkit-scrollbar-thumb        { background: #d1d5db; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover  { background: #C8FF00; }
+
+.dark ::-webkit-scrollbar-track   { background: #101018; }
+.dark ::-webkit-scrollbar-thumb   { background: #1C1C2E; }
 
 /* ── Noise overlay for depth ──────────────────────────── */
 body::before {

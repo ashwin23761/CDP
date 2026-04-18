@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { voteOnPost } from '../../api/votes';
+import { voteOnPost, getUserVote } from '../../api/votes';
 import { getCommentsByPost, createComment, deleteComment } from '../../api/comments';
 import { updatePost, deletePost } from '../../api/posts';
 
@@ -117,6 +117,23 @@ export default function PostCard({ post, onPostDeleted, onTagClick }) {
   const [downvotes, setDownvotes] = useState(parseInt(post.downvotes) || 0);
   const [userVote, setUserVote] = useState(null);
   const [voting, setVoting] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUserVote = async () => {
+      try {
+        const res = await getUserVote(post_id);
+        if (res.success) {
+          setUserVote(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load user vote', err);
+      }
+    };
+
+    fetchUserVote();
+  }, [post_id, user]);
 
   const [showComments, setShowComments] = useState(false);
   const [flatComments, setFlatComments] = useState([]);

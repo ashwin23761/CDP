@@ -13,6 +13,8 @@ CREATE TABLE users (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     anonymous_name VARCHAR(100),
+    bio TEXT,
+    avatar_color VARCHAR(7),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_username (username),
     INDEX idx_email (email)
@@ -58,6 +60,7 @@ CREATE TABLE posts (
     group_id INT,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
+    tags VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
     FOREIGN KEY (group_id) REFERENCES groups_table(group_id) ON DELETE CASCADE,
@@ -74,11 +77,14 @@ CREATE TABLE comments (
     post_id INT NOT NULL,
     user_id INT,
     content TEXT NOT NULL,
+    parent_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (parent_id) REFERENCES comments(comment_id) ON DELETE CASCADE,
     INDEX idx_post (post_id),
     INDEX idx_user (user_id),
+    INDEX idx_parent (parent_id),
     INDEX idx_created (created_at)
 );
 

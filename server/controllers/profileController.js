@@ -20,16 +20,26 @@ const getUserProfile = async (req, res) => {
     // Get user's posts
     const [posts] = await db.query(`
       SELECT p.*, g.name as group_name,
-        COUNT(DISTINCT c.comment_id) as comment_count,
-        SUM(CASE WHEN v.vote_type = 'UPVOTE' THEN 1 ELSE 0 END) as upvotes,
-        SUM(CASE WHEN v.vote_type = 'DOWNVOTE' THEN 1 ELSE 0 END) as downvotes,
-        SUM(CASE WHEN v.vote_type = 'UPVOTE' THEN 1 WHEN v.vote_type = 'DOWNVOTE' THEN -1 ELSE 0 END) as vote_total
+        COALESCE(comment_stats.comment_count, 0) as comment_count,
+        COALESCE(vote_stats.upvotes, 0) as upvotes,
+        COALESCE(vote_stats.downvotes, 0) as downvotes,
+        COALESCE(vote_stats.vote_total, 0) as vote_total
       FROM posts p
       LEFT JOIN groups_table g ON p.group_id = g.group_id
-      LEFT JOIN comments c ON p.post_id = c.post_id
-      LEFT JOIN votes v ON p.post_id = v.post_id
+      LEFT JOIN (
+        SELECT post_id, COUNT(*) as comment_count
+        FROM comments
+        GROUP BY post_id
+      ) comment_stats ON p.post_id = comment_stats.post_id
+      LEFT JOIN (
+        SELECT post_id,
+          SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 ELSE 0 END) as upvotes,
+          SUM(CASE WHEN vote_type = 'DOWNVOTE' THEN 1 ELSE 0 END) as downvotes,
+          SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 WHEN vote_type = 'DOWNVOTE' THEN -1 ELSE 0 END) as vote_total
+        FROM votes
+        GROUP BY post_id
+      ) vote_stats ON p.post_id = vote_stats.post_id
       WHERE p.user_id = ?
-      GROUP BY p.post_id
       ORDER BY p.created_at DESC
     `, [userId]);
 
