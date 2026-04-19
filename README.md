@@ -78,8 +78,7 @@ mysql -u root -p
 <h4>Step 3: Create Database </h4>
 
 ```
-CREATE DATABASE cdp;
-USE cdp;
+SOURCE {copy past file PATH of complete_schema.sql};
 ```
 
 <h4>Step 4: Test the Database</h4>
