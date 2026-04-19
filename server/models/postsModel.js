@@ -20,7 +20,7 @@ const createPost = async (user_id, group_id, title, content, tags) => {
 
 const getAllPosts = async (group_id, sort) => {
   const query = `
-    SELECT 
+    SELECT
       p.*, g.name as group_name, u.anonymous_name,
       COALESCE(cc.comment_count, 0) as comment_count,
       COALESCE(vs.upvotes, 0) as upvotes,
@@ -35,7 +35,7 @@ const getAllPosts = async (group_id, sort) => {
       GROUP BY post_id
     ) cc ON p.post_id = cc.post_id
     LEFT JOIN (
-      SELECT 
+      SELECT
         post_id,
         SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 ELSE 0 END) as upvotes,
         SUM(CASE WHEN vote_type = 'DOWNVOTE' THEN 1 ELSE 0 END) as downvotes,
@@ -50,6 +50,9 @@ const getAllPosts = async (group_id, sort) => {
   if (group_id) {
     finalQuery += ' WHERE p.group_id = ?';
     params.push(group_id);
+  } else {
+    // For general feed, exclude posts from private groups
+    finalQuery += ' WHERE g.is_private = FALSE';
   }
 
   switch (sort) {

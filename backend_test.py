@@ -810,6 +810,63 @@ class CDPAPITester:
                 is_member = group_data.get('is_member', False)
                 user_role = group_data.get('user_role')
                 print(f"   Private group - Member: {is_member}, Role: {user_role}")
+                
+                # Create a post in the private group
+                post_data = {
+                    "title": f"Private Group Post {timestamp}",
+                    "content": "This post should not appear in general feed",
+                    "group_id": private_group_id,
+                    "tags": ["private", "test"]
+                }
+                
+                success, response = self.run_test(
+                    "Posts - Create Post in Private Group",
+                    "POST",
+                    "posts",
+                    201,
+                    data=post_data
+                )
+                
+                if success and response.get('success'):
+                    private_post_id = response.get('data', {}).get('post_id')
+                    
+                    # Test that private post does NOT appear in general feed
+                    success, response = self.run_test(
+                        "Posts - Verify Private Post Excluded from General Feed",
+                        "GET",
+                        "posts",
+                        200
+                    )
+                    
+                    if success and response.get('success'):
+                        general_posts = response.get('data', [])
+                        private_post_in_general = any(p.get('post_id') == private_post_id for p in general_posts)
+                        
+                        if not private_post_in_general:
+                            print("   ✅ Private post correctly excluded from general feed")
+                        else:
+                            print("   ❌ Private post incorrectly appears in general feed")
+                            self.log_test("Posts - Private Post Exclusion", False, "Private post found in general feed")
+                            return private_group_id
+                    
+                    # Test that private post DOES appear when specifically requesting group posts
+                    success, response = self.run_test(
+                        f"Posts - Get Posts from Private Group {private_group_id}",
+                        "GET",
+                        f"posts?group_id={private_group_id}",
+                        200
+                    )
+                    
+                    if success and response.get('success'):
+                        group_posts = response.get('data', [])
+                        private_post_in_group = any(p.get('post_id') == private_post_id for p in group_posts)
+                        
+                        if private_post_in_group:
+                            print(f"   ✅ Private post correctly appears in group {private_group_id} feed")
+                        else:
+                            print(f"   ❌ Private post missing from group {private_group_id} feed")
+                            self.log_test("Posts - Private Post in Group Feed", False, f"Private post not found in group {private_group_id}")
+                
                 return private_group_id
         
         return None
