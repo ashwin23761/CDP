@@ -81,15 +81,6 @@ mysql -u root -p
 SOURCE {copy past file PATH of complete_schema.sql};
 ```
 
-<h4>Step 4: Test the Database</h4>
-
-```
-CREATE TABLE users ( id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(50), anonymous_name VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP );
-
-INSERT INTO users (username, anonymous_name)
-VALUES ('king', 'anon123');
-```
-
 At `http://localhost:5000` you should see "API Running"
 <br>
 At `http://localhost:5000/users` you should see the data <br>
