@@ -9,7 +9,8 @@ function generateAnonName() {
 }
 
 // Register new user
-const register = async (req, res) => {try {
+const register = async (req, res) => {
+  try {
     const { username, email, password } = req.body;
 
     // Validation

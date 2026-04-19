@@ -241,22 +241,29 @@ const getGroupMembers = async (req, res) => {
   }
 };
 
-// Delete group (admin only)
+// Delete group (creator only)
 const deleteGroup = async (req, res) => {
   try {
     const { id } = req.params;
     const user_id = req.user.user_id;
 
-    // Check if user is admin of the group
-    const [members] = await db.query(
-      'SELECT * FROM group_members WHERE group_id = ? AND user_id = ? AND role = "admin"',
-      [id, user_id]
+    // Check if user is the creator of the group
+    const [groups] = await db.query(
+      'SELECT creator_id FROM groups_table WHERE group_id = ?',
+      [id]
     );
 
-    if (members.length === 0) {
+    if (groups.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Group not found'
+      });
+    }
+
+    if (groups[0].creator_id !== user_id) {
       return res.status(403).json({
         success: false,
-        message: 'Only group admin can delete the group'
+        message: 'Only the group creator can delete the group'
       });
     }
 

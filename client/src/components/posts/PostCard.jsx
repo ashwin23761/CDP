@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { voteOnPost } from '../../api/votes';
+import { voteOnPost, getUserVote } from '../../api/votes';
 import { getCommentsByPost, createComment, deleteComment } from '../../api/comments';
 import { updatePost, deletePost } from '../../api/posts';
 
@@ -135,11 +135,62 @@ export default function PostCard({ post, onPostDeleted, onTagClick }) {
 
   const commentTree = buildCommentTree(flatComments);
 
+  // Load user's vote state from localStorage and API
+  useEffect(() => {
+    const loadUserVote = async () => {
+      if (!user?.user_id) return;
+
+      // First check localStorage for cached vote state
+      const storageKey = `userVotes_${user.user_id}`;
+      const storedVotes = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      if (storedVotes[post_id]) {
+        setUserVote(storedVotes[post_id]);
+        return;
+      }
+
+      // If not in localStorage, fetch from API
+      try {
+        const res = await getUserVote(post_id);
+        if (res.success && res.data.vote_type) {
+          const voteType = res.data.vote_type;
+          setUserVote(voteType);
+          // Cache the vote state
+          const updatedVotes = { ...storedVotes, [post_id]: voteType };
+          localStorage.setItem(storageKey, JSON.stringify(updatedVotes));
+        }
+      } catch (err) {
+        // User hasn't voted, that's fine
+      }
+    };
+
+    loadUserVote();
+  }, [user?.user_id, post_id]);
+
   const handleVote = async (voteType) => {
-    if (voting) return;
+    if (voting || !user?.user_id) return;
     setVoting(true);
     try {
       await voteOnPost({ post_id, vote_type: voteType });
+
+      // Update localStorage
+      const storageKey = `userVotes_${user.user_id}`;
+      const storedVotes = JSON.parse(localStorage.getItem(storageKey) || '{}');
+
+      let newUserVote;
+      if (userVote === voteType) {
+        // Removing vote
+        newUserVote = null;
+        const updatedVotes = { ...storedVotes };
+        delete updatedVotes[post_id];
+        localStorage.setItem(storageKey, JSON.stringify(updatedVotes));
+      } else {
+        // Adding/changing vote
+        newUserVote = voteType;
+        const updatedVotes = { ...storedVotes, [post_id]: voteType };
+        localStorage.setItem(storageKey, JSON.stringify(updatedVotes));
+      }
+
+      // Update UI state
       if (userVote === voteType) {
         setUserVote(null);
         if (voteType === 'UPVOTE') { setUpvotes(u => u - 1); setVoteCount(v => v - 1); }

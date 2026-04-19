@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 
 class CDPAPITester:
-    def __init__(self, base_url="https://a3fe8a7f-b9d2-4218-94b3-33c0a65d953f.preview.emergentagent.com"):
+    def __init__(self, base_url="http://localhost:8001"):
         self.base_url = base_url
         self.token = None
         self.user_id = None

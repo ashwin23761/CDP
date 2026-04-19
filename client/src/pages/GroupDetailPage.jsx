@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getGroupById, joinGroup, leaveGroup, getGroupMembers } from '../api/groups';
+import { getGroupById, joinGroup, leaveGroup, getGroupMembers, deleteGroup } from '../api/groups';
 import { useAuth } from '../context/AuthContext';
 import CreatePostForm from '../components/posts/CreatePostForm';
 import PostList from '../components/posts/PostList';
@@ -56,6 +56,22 @@ export default function GroupDetailPage() {
     } catch (err) { console.error(err); }
   };
 
+  const handleDeleteGroup = async () => {
+    if (!window.confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await deleteGroup(id);
+      navigate('/groups');
+    } catch (err) {
+      console.error('Failed to delete group:', err);
+      alert('Failed to delete group');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return <main className="relative z-10 max-w-3xl mx-auto px-4 py-10"><div className="text-center text-[#52526E]">Loading group...</div></main>;
   }
@@ -84,18 +100,29 @@ export default function GroupDetailPage() {
             </div>
             <p className="text-sm text-[#52526E] font-body">{group.description || 'No description'}</p>
           </div>
-          <button
-            onClick={handleJoinLeave}
-            disabled={actionLoading}
-            data-testid="join-leave-btn"
-            className={`px-6 py-2.5 rounded-lg font-bold font-body text-sm tracking-wide transition-all duration-200 ${
-              group.is_member
-                ? 'border border-[#1C1C2E] text-[#52526E] hover:text-red-400 hover:border-red-400'
-                : 'bg-[#C8FF00] text-[#090910] hover:bg-[#d8ff33] active:scale-95'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {actionLoading ? '...' : group.is_member ? 'Leave' : 'Join'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleJoinLeave}
+              disabled={actionLoading}
+              data-testid="join-leave-btn"
+              className={`px-6 py-2.5 rounded-lg font-bold font-body text-sm tracking-wide transition-all duration-200 ${
+                group.is_member
+                  ? 'border border-[#1C1C2E] text-[#52526E] hover:text-red-400 hover:border-red-400'
+                  : 'bg-[#C8FF00] text-[#090910] hover:bg-[#d8ff33] active:scale-95'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {actionLoading ? '...' : group.is_member ? 'Leave' : 'Join'}
+            </button>
+            {user && user.user_id === group.creator_id && (
+              <button
+                onClick={handleDeleteGroup}
+                disabled={actionLoading}
+                className="px-6 py-2.5 rounded-lg font-bold font-body text-sm tracking-wide transition-all duration-200 border border-red-500 text-red-400 hover:bg-red-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {actionLoading ? '...' : 'Delete Group'}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-6 text-xs text-[#2E2E42] font-body pt-4 border-t border-[#1C1C2E]">

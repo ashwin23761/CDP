@@ -29,7 +29,7 @@ router.post('/:id/leave', authenticateToken, leaveGroup);
 // GET /groups/:id/members - Get group members
 router.get('/:id/members', getGroupMembers);
 
-// DELETE /groups/:id - Delete group (protected, admin only)
+// DELETE /groups/:id - Delete group (protected, creator only)
 router.delete('/:id', authenticateToken, deleteGroup);
 
 module.exports = router;

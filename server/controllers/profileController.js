@@ -17,23 +17,36 @@ const getUserProfile = async (req, res) => {
 
     const user = users[0];
 
-    // Get user's posts
+    // Get user's posts with vote counts
     const [posts] = await db.query(`
-      SELECT p.*, g.name as group_name,
-        COUNT(DISTINCT c.comment_id) as comment_count,
-        SUM(CASE WHEN v.vote_type = 'UPVOTE' THEN 1 ELSE 0 END) as upvotes,
-        SUM(CASE WHEN v.vote_type = 'DOWNVOTE' THEN 1 ELSE 0 END) as downvotes,
-        SUM(CASE WHEN v.vote_type = 'UPVOTE' THEN 1 WHEN v.vote_type = 'DOWNVOTE' THEN -1 ELSE 0 END) as vote_total
+      SELECT 
+        p.post_id, p.title, p.content, p.created_at, p.tags, g.name as group_name, u.anonymous_name,
+        COALESCE(cc.comment_count, 0) as comment_count,
+        COALESCE(vs.upvotes, 0) as upvotes,
+        COALESCE(vs.downvotes, 0) as downvotes,
+        COALESCE(vs.vote_total, 0) as vote_total
       FROM posts p
       LEFT JOIN groups_table g ON p.group_id = g.group_id
-      LEFT JOIN comments c ON p.post_id = c.post_id
-      LEFT JOIN votes v ON p.post_id = v.post_id
+      LEFT JOIN users u ON p.user_id = u.user_id
+      LEFT JOIN (
+        SELECT post_id, COUNT(*) as comment_count
+        FROM comments
+        GROUP BY post_id
+      ) cc ON p.post_id = cc.post_id
+      LEFT JOIN (
+        SELECT 
+          post_id,
+          SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 ELSE 0 END) as upvotes,
+          SUM(CASE WHEN vote_type = 'DOWNVOTE' THEN 1 ELSE 0 END) as downvotes,
+          SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 WHEN vote_type = 'DOWNVOTE' THEN -1 ELSE 0 END) as vote_total
+        FROM votes
+        GROUP BY post_id
+      ) vs ON p.post_id = vs.post_id
       WHERE p.user_id = ?
-      GROUP BY p.post_id
       ORDER BY p.created_at DESC
     `, [userId]);
 
-    // Get groups the user is in
+    // Get groups the user is in - simplified
     const [groups] = await db.query(`
       SELECT g.group_id, g.name, g.description, gm.role, gm.joined_at
       FROM group_members gm
@@ -42,12 +55,12 @@ const getUserProfile = async (req, res) => {
       ORDER BY gm.joined_at DESC
     `, [userId]);
 
-    // Stats
+    // Stats - simplified
     const [commentStats] = await db.query(
       'SELECT COUNT(*) as total FROM comments WHERE user_id = ?', [userId]
     );
     const [voteStats] = await db.query(`
-      SELECT SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 WHEN vote_type = 'DOWNVOTE' THEN -1 ELSE 0 END) as karma
+      SELECT COALESCE(SUM(CASE WHEN vote_type = 'UPVOTE' THEN 1 WHEN vote_type = 'DOWNVOTE' THEN -1 ELSE 0 END), 0) as karma
       FROM votes v
       JOIN posts p ON v.post_id = p.post_id
       WHERE p.user_id = ?
@@ -68,7 +81,7 @@ const getUserProfile = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(err);
+    console.error('Profile fetch error:', err);
     return res.status(500).json({ success: false, message: 'Database error' });
   }
 };
